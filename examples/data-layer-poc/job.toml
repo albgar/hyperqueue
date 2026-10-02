@@ -1,0 +1,27 @@
+# This syntax only exists in HyperQueue v0.25.1 and earlier.
+# `data_layer` makes the worker expose the task-local `hq data` service.
+data_layer = true
+
+[[task]]
+id = 1
+command = ["bash", "-ceu", "printf 'transferred by HyperQueue data layer\\n' > payload.txt; hq data put 7 payload.txt --mime-type text/plain"]
+stdout = "producer.stdout"
+stderr = "producer.stderr"
+[[task.request]]
+# Makes this task run on worker A in the POC.
+resources = { "producer" = 1 }
+
+[[task]]
+id = 2
+# Input index 0 means the first [[task.data_deps]] entry below, not output ID 7.
+command = ["bash", "-ceu", "hq data get 0 received.txt; test \"$(cat received.txt)\" = 'transferred by HyperQueue data layer'; printf 'consumer received: '; cat received.txt"]
+stdout = "consumer.stdout"
+stderr = "consumer.stderr"
+[[task.request]]
+# Makes this task run on worker B, requiring a TCP transfer even though the
+# POC's two workers happen to be in one container.
+resources = { "consumer" = 1 }
+
+[[task.data_deps]]
+task_id = 1
+output_id = 7

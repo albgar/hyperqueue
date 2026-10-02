@@ -1,0 +1,26 @@
+# Experimental v0.25.1 feature: task-to-task, in-memory file transfer.
+data_layer = true
+
+[[task]]
+id = 1
+cwd = "%{SUBMIT_DIR}/producer-work"
+command = ["bash", "-ceu", "\"$HQ_SUBMIT_DIR/bin/producer\"; hq data put 0 producer-result.bin --mime-type application/octet-stream"]
+stdout = "%{SUBMIT_DIR}/producer.stdout"
+stderr = "%{SUBMIT_DIR}/producer.stderr"
+[[task.request]]
+# These resource labels force a transfer between two workers.
+resources = { "producer" = 1 }
+
+[[task]]
+id = 2
+# Input 0 refers to the first data_deps item, below.
+cwd = "%{SUBMIT_DIR}/consumer-work"
+command = ["bash", "-ceu", "hq data get 0 fft-input.bin; \"$HQ_SUBMIT_DIR/bin/consumer\""]
+stdout = "%{SUBMIT_DIR}/consumer.stdout"
+stderr = "%{SUBMIT_DIR}/consumer.stderr"
+[[task.request]]
+resources = { "consumer" = 1 }
+
+[[task.data_deps]]
+task_id = 1
+output_id = 0

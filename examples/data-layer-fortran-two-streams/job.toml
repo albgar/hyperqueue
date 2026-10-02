@@ -1,0 +1,31 @@
+# Experimental v0.25.1 task-to-task, in-memory data transfer.
+data_layer = true
+
+[[task]]
+id = 1
+cwd = "%{SUBMIT_DIR}/producer-work"
+# Producer output IDs 3 and 4 are independent named data objects.
+command = ["bash", "-ceu", "\"$HQ_SUBMIT_DIR/bin/producer\"; hq data put 3 producer-array.bin --mime-type application/octet-stream; hq data put 4 producer-factor.bin --mime-type application/octet-stream"]
+stdout = "%{SUBMIT_DIR}/producer.stdout"
+stderr = "%{SUBMIT_DIR}/producer.stderr"
+[[task.request]]
+resources = { "producer" = 1 }
+
+[[task]]
+id = 2
+cwd = "%{SUBMIT_DIR}/consumer-work"
+# Inputs 0 and 1 refer to the order of the two data_deps blocks below.
+# The consumer then publishes its own results as output IDs 5 and 6.
+command = ["bash", "-ceu", "hq data get 0 array-input.bin; hq data get 1 factor-input.bin; \"$HQ_SUBMIT_DIR/bin/consumer\"; hq data put 5 consumer-mean.bin --mime-type application/octet-stream; hq data put 6 consumer-scaled-array.bin --mime-type application/octet-stream"]
+stdout = "%{SUBMIT_DIR}/consumer.stdout"
+stderr = "%{SUBMIT_DIR}/consumer.stderr"
+[[task.request]]
+resources = { "consumer" = 1 }
+
+[[task.data_deps]]
+task_id = 1
+output_id = 3
+
+[[task.data_deps]]
+task_id = 1
+output_id = 4
